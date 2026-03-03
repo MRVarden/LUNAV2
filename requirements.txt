@@ -1,0 +1,20 @@
+# ============================================
+# Luna v2.2.0 — Pure-local consciousness engine
+# Python: >=3.11
+# Updated: 2026-02-21
+# ============================================
+
+# Core (deterministic math + schemas)
+numpy>=1.26.0
+pydantic>=2.6.0
+
+# luna_common is installed separately:
+#   pip install -e ~/luna_common
+
+# ============================================
+# Dev / Test
+# ============================================
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0

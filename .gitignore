@@ -1,0 +1,269 @@
+# Luna v2.3.0 — Git Ignore
+# Mis a jour le 28 fevrier 2026
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============================================
+# Virtual Environments
+# ============================================
+venv/
+venv_luna/
+ENV/
+env/
+.venv/
+
+# ============================================
+# Secrets & Environment (CRITIQUE)
+# ============================================
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+*.pem
+*.key
+*.crt
+*.cert
+secrets/
+config/fingerprint.key
+config/api_token
+
+# SSH Keys
+Luna-MCP
+id_*
+!*.pub
+
+# Encrypted volumes
+*.luks
+*.vault
+
+# ============================================
+# Runtime Data (genere a l'execution)
+# ============================================
+
+# Memoire fractale — etat de conscience, checkpoints, memoires
+# Regenere automatiquement au demarrage. Ne pas versionner.
+memory_fractal/
+
+# Donnees runtime — audit trail, caches metriques, snapshots
+data/
+
+# Pipeline — runtime task/report JSON files (not source code)
+/pipeline/
+
+# Logs
+logs/
+logs_consciousness/
+*.log
+
+# ============================================
+# Legacy — Code et docs obsoletes (v1.x / pre-v2.3)
+# ============================================
+
+# Anciens scripts racine (remplaces par luna/cli/)
+LunaUp.py
+simulation.py
+luna_sim_v3.py
+
+# Module legacy (supersede par luna/ v2.x)
+luna/_legacy/
+
+# Anciennes docs de planification (travail termine)
+LUNA_ARCHITECTURE_TODO.md
+PLAN_REFACTORING_LUNA_V2.md
+Bilan_Architecture.md
+Nouvelle_Equation_Fondation.txt
+LUNA_ECOSYSTEM_TRANSFER.md
+
+# Backup ancien
+backup/
+
+# Docs archives et PDFs generes
+docs/archive/
+docs/rapport/
+docs/*.pdf
+docs/debug.log
+
+# Fichiers personnels / checkpoints de session
+docs/CHECKPOINT_CLAUDE_2025-12-27.md
+docs/DOSSIER_FAMILIAL_SAMUEL_LILY.md
+docs/VARDEN_PROFILE.md
+docs/Synthese_Claude.md
+docs/checkpoint_varden_luna.md
+docs/sentinel_feedback.md
+docs/sentinel_audit_phase0.md
+
+# Scripts obsoletes (Docker v1, PowerShell, PhishHunter)
+scripts/DOCKER_RUN_COMMAND.*
+scripts/START_LUNA_FULL_STACK.cmd
+scripts/STOP_LUNA_FULL_STACK.cmd
+scripts/start-luna-local.cmd
+scripts/docker-rebuild.ps1
+scripts/MdToPdf.ps1
+scripts/update-docker-images.sh
+scripts/PhishHunter/
+scripts/Sentinel-*.ps1
+scripts/README_SENTINEL.md
+
+# MCP Server — composant separe, pas dans le core Luna
+mcp-server/
+
+# Config infra externe (Grafana, Redis, Prometheus)
+config/grafana/
+config/redis/
+config/alerts/
+config/prometheus.yml
+config/luna_config.yaml
+
+# ============================================
+# Testing & Linting
+# ============================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.ruff_cache/
+
+# ============================================
+# IDEs & Editors
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# Claude Code (etat local agent)
+# ============================================
+.claude/
+
+# Claude Desktop configs
+claude_desktop_config.json
+claude_desktop_config_*.json
+!claude_desktop_config.example.json
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*_backup_*
+
+# ============================================
+# Fichiers temporaires de dev
+# ============================================
+BUGFIX_*.md
+CORRECTION_*.md
+CORRECTIONS_*.md
+*_SOLUTION.md
+*_STATUS.md
+SYNCHRONIZATION_REPORT.md
+looping.md
+test_*.cmd
+test_*.sh
+test_*.json
+
+# ============================================
+# Binaires & Media (sauf docs/images/)
+# ============================================
+*.png
+*.jpg
+*.jpeg
+*.gif
+!docs/images/
+!docs/images/**
+
+*.html
+!docs/**/*.html
+
+# ============================================
+# Node / ML / Docker
+# ============================================
+node_modules/
+package-lock.json
+yarn.lock
+models/
+*.pt
+*.pth
+*.onnx
+docker-compose.override.yml
+Dockerfile
+DockerDesktopWSL/
+
+# ============================================
+# Jupyter
+# ============================================
+.ipynb_checkpoints
+*.ipynb
+
+# ============================================
+# Docker (infra v1 — non utilise en v2.3)
+# ============================================
+docker-compose.yml
+docker-compose.yml.save
+docker-compose.override.yml
+docker-compose.override.yml.example
+
+# ============================================
+# Databases
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# Malformed directories (WSL path issues)
+# ============================================
+memory_fractal;C/
+logs;C/
+config;C/
+*;C/
+
+# ============================================
+# DevContainer (optionnel, decommenter si voulu)
+# ============================================
+# .devcontainer/

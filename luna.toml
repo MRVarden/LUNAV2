@@ -1,0 +1,107 @@
+# Luna v2.4.0 Configuration
+# All Phi-derived parameters are computed from PHI in luna_common.constants
+# This file is for runtime configuration only.
+
+[luna]
+version = "2.4.0"
+agent_name = "LUNA"
+data_dir = "memory_fractal"
+pipeline_dir = "pipeline"
+
+[consciousness]
+# Loaded from luna_common.constants — do NOT override unless testing
+# tau = 1.618
+# kappa = 2.618
+# dt = 0.618
+checkpoint_file = "memory_fractal/consciousness_state_v2.json"
+backup_on_save = true
+
+[memory]
+fractal_root = "memory_fractal"
+levels = ["seeds", "roots", "branches", "leaves"]
+max_memories_per_level = 500
+
+[pipeline]
+root = "pipeline"
+poll_interval_seconds = 1.0
+timeout_seconds = 300
+# v2.4.0 — Self-Evolution Loop
+autonomy = "supervised"
+sayohmy_path = "~/SAYOHMY"
+sentinel_path = "~/SENTINEL"
+testengineer_path = "~/TESTENGINEER"
+agent_timeout = 120
+runner_enabled = true
+
+[observability]
+log_level = "INFO"
+log_file = "logs/luna.log"
+metrics_enabled = true
+
+[heartbeat]
+interval_seconds = 30
+fingerprint_enabled = true
+checkpoint_interval = 100
+
+[llm]
+provider = "deepseek"
+model = "deepseek-reasoner"
+base_url = "https://api.deepseek.com/v1"
+# api_key = ""  # Prefer DEEPSEEK_API_KEY env var
+max_tokens = 4096
+temperature = 0.7
+
+[dream]
+inactivity_threshold = 7200    # 2h
+consolidation_window = 100
+max_dream_duration = 300       # 5min cap
+report_dir = "memory_fractal/dreams"
+enabled = true
+
+[orchestrator]
+llm_augment = true
+max_cycles = 0            # 0 = infinite loop
+checkpoint_interval = 1
+cycle_timeout = 600
+retry_max = 3
+retry_base_delay = 1.0
+
+[chat]
+max_history = 30
+memory_search_limit = 5
+idle_heartbeat = true
+save_conversations = true
+prompt_prefix = "luna> "
+
+[metrics]
+enabled = true
+cache_enabled = true
+cache_dir = "data/metrics_cache"
+timeout_seconds = 60
+python_enabled = true
+rust_enabled = false
+java_enabled = false
+typescript_enabled = false
+c_enabled = false
+
+[fingerprint]
+enabled = true
+secret_file = "config/fingerprint.key"
+ledger_file = "data/fingerprints.jsonl"
+watermark_enabled = false
+
+[safety]
+enabled = true
+snapshot_dir = "data/snapshots"
+max_snapshots = 10
+retention_days = 7
+max_generations_per_hour = 100
+max_commits_per_hour = 20
+watchdog_threshold = 3
+
+[api]
+host = "127.0.0.1"
+port = 8618                    # floor(PHI * 5326) = 8618
+auth_enabled = true
+auth_token_file = "config/api_token"
+rate_limit_rpm = 60
