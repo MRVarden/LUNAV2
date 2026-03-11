@@ -698,12 +698,13 @@ cognitive uses `cognitive_step()` (full Thinker → Reactor → evolve).
 The Evaluator that judges Luna is fixed by design — out of reach of Luna's
 own LearnableParams (anti-Goodhart).
 
-**Current result: VALIDATED 4/5, +39.3% improvement.** The cognitive pipeline
+**Current result: VALIDATED 5/5, +45.8% improvement.** The cognitive pipeline
 produces massive gains in information integration (Φ_IIT: 0.0 → 0.97),
 phase stability (0.5 → 1.0), and perturbation recovery (0.08 → 0.21), while
 losing negligibly on static metrics (identity: -0.007, noise: -0.021).
-Coherence fails honestly: Φ > 0.618 for 77% of cognitive steps (threshold: 80%)
-— the system trades some integration for dynamic responsiveness.
+Coherence — initially 77% (below the 80% threshold) — rose to 85.5% after
+the v5.3 identity rebalance and anti-stagnation guards. The threshold was
+never changed.
 
 The code exists: `luna/validation/verdict.py`, `comparator.py`,
 `verdict_tasks.py`. Run it with `python3 -m luna validate -v`.
