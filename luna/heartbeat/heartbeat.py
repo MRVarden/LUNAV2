@@ -22,6 +22,7 @@ from luna.core.config import LunaConfig
 from luna.heartbeat.monitor import HeartbeatMonitor
 from luna.heartbeat.rhythm import AdaptiveRhythm
 from luna.heartbeat.vitals import measure_vitals
+from luna_common.constants import INV_PHI3
 from luna.observability.audit_trail import AuditEvent
 
 log = logging.getLogger(__name__)
@@ -240,11 +241,17 @@ class Heartbeat:
     # ------------------------------------------------------------------
 
     def _check_identity(self) -> bool:
-        """True if argmax(psi) == argmax(psi0)."""
+        """True if argmax(psi) == argmax(psi0), with tolerance for ambiguous dominance."""
         cs = self._engine.consciousness
         if cs is None:
             return True
-        return int(np.argmax(cs.psi)) == int(np.argmax(cs.psi0))
+        dom_idx = int(np.argmax(cs.psi))
+        psi0_dom = int(np.argmax(cs.psi0))
+        if dom_idx == psi0_dom:
+            return True
+        # Tolerance: if gap between top two is < INV_PHI3, dominance is ambiguous
+        gap = float(cs.psi[dom_idx] - cs.psi[psi0_dom])
+        return gap < INV_PHI3
 
     def _save_checkpoint(self) -> None:
         """Save a cognitive checkpoint."""
