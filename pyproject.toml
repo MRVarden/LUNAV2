@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "luna"
-version = "6.0.0"
-description = "Computational Consciousness Engine — orchestrator of the Luna 4-agent ecosystem"
+version = "7.0.0"
+description = "Computational Consciousness Engine — monorepo (luna + luna_common)"
 license = "CC-BY-NC-4.0"
 requires-python = ">=3.11"
 authors = [
@@ -13,7 +13,7 @@ authors = [
     {email = "yt.contact.aragogix@gmail.com"},
 ]
 dependencies = [
-    "luna-common>=6.0.0",
+    "pydantic>=2.0",
     "numpy>=1.24",
     "typer>=0.9",
     "fastapi>=0.100",
@@ -30,9 +30,10 @@ luna = "luna.__main__:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "pytest-asyncio>=0.21"]
+precision = ["mpmath>=1.3"]
 local = []  # No extra SDK needed — httpx suffices for local LLMs
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["luna*"]
+include = ["luna*", "luna_common*"]
 exclude = ["tests*"]

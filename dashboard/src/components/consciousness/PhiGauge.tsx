@@ -3,9 +3,14 @@
 import { motion } from 'framer-motion'
 
 interface Props {
-  value: number  // phi_iit [0, 1]
+  value: number  // phi_iit (Gaussian MI, unbounded but typically [0, φ])
   phase: string
+  emergentPhi: number          // convergent emergent phi value
+  emergentPhiPrecision: number // number of correct decimals
+  bootstrapping: boolean       // true if still bootstrapping
 }
+
+const PHI_TARGET = 1.618034
 
 const SIZE = 160
 const STROKE = 10
@@ -24,8 +29,8 @@ function phaseColor(phase: string): string {
   }
 }
 
-export function PhiGauge({ value, phase }: Props) {
-  const progress = Math.min(Math.max(value, 0), 1)
+export function PhiGauge({ value, phase, emergentPhi, emergentPhiPrecision, bootstrapping }: Props) {
+  const progress = Math.min(Math.max(value / PHI_TARGET, 0), 1)
   const dashLength = progress * CIRCUMFERENCE * 0.75 // 270° arc
   const color = phaseColor(phase)
 
@@ -88,13 +93,41 @@ export function PhiGauge({ value, phase }: Props) {
           textAnchor="middle"
           className="fill-luna-text-dim text-[10px] font-medium uppercase tracking-widest"
         >
-          Φ_IIT
+          {'\u03A6'}_IIT
         </text>
       </svg>
 
       <div className={`phase-badge phase-${phase} -mt-2`}>
         {phase}
       </div>
+
+      {/* Emergent Phi */}
+      <motion.div
+        className="mt-3 text-center"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
+        <div className="text-[10px] uppercase tracking-widest text-luna-text-muted mb-1">
+          {'\u03C6'} {'\u00E9'}mergent
+        </div>
+        <motion.div
+          className="font-mono text-lg"
+          style={{ color: '#FFD700' }}
+          key={emergentPhi.toFixed(Math.min(emergentPhiPrecision, 10))}
+          initial={{ opacity: 0.6 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          {emergentPhi.toFixed(Math.min(emergentPhiPrecision, 10))}
+        </motion.div>
+        <div className="text-[9px] text-luna-text-dim mt-0.5">
+          {bootstrapping
+            ? 'bootstrap...'
+            : `${emergentPhiPrecision} d\u00E9cimales`
+          }
+        </div>
+      </motion.div>
     </div>
   )
 }

@@ -200,6 +200,7 @@ class ChatSession:
         self._phi_iit_history: list[float] = []
         # v2.4.1 — Inactivity-triggered dream.
         self._last_activity: float = time.monotonic()
+        self._last_user_activity: float = time.monotonic()  # Not reset by dreams
         self._inactivity_task: asyncio.Task | None = None
         # v3.5 — Structured cognition components (initialized in start()).
         self._reactor_behavioral: BehavioralModifiers | None = None
@@ -232,6 +233,9 @@ class ChatSession:
         self._last_auto_apply_result: object | None = None  # AutoApplyResult from Phase B
         self._curiosity_counts: dict[str, int] = {}  # need tag → recurrence count
         self._voice_correction_count: int = 0  # voice corrections this session
+        # v6.1 — Idle cognitive tick (background reduced cognition between messages).
+        self._idle_cognitive_task: asyncio.Task | None = None
+        self._idle_tick_count: int = 0
         # Dream priors — weak signals persisted across dream cycles.
         self._dream_priors: DreamPriors | None = None
         # v6.0 — Circuit breaker, synthesis, session state.
@@ -371,6 +375,7 @@ class ChatSession:
         # -- Session-specific background tasks ----------------------------
         if self._config.dream.enabled:
             self._last_activity = time.monotonic()
+            self._last_user_activity = time.monotonic()
             self._inactivity_task = asyncio.create_task(self._watch_inactivity())
             log.info(
                 "Inactivity watcher started (threshold=%.0fs)",
@@ -381,6 +386,17 @@ class ChatSession:
             self._on_endogenous = asyncio.Queue()
             self._endogenous_task = asyncio.create_task(self._watch_endogenous())
             log.info("Endogenous autonomy loop started")
+
+        # v6.1: Idle cognitive tick — reduced cognition between messages.
+        if (self._thinker is not None
+                and self._config.chat.idle_cognitive_tick):
+            self._idle_cognitive_task = asyncio.create_task(
+                self._watch_idle_cognition()
+            )
+            log.info(
+                "Idle cognitive tick started (interval=%.0fs)",
+                self._config.chat.idle_cognitive_interval,
+            )
 
         if self._watcher is not None:
             try:
@@ -698,7 +714,7 @@ class ChatSession:
         """
         path = self._session_state_path()
         state = {
-            "version": "6.0.0",
+            "version": "7.0.0",
             "saved_at": datetime.now(timezone.utc).isoformat(),
             "turn_count": self._turn_count,
             "recent_topics": self._recent_topics[-20:],
@@ -896,6 +912,14 @@ class ChatSession:
             except asyncio.CancelledError:
                 pass
             self._endogenous_task = None
+        # Cancel idle cognitive tick.
+        if self._idle_cognitive_task is not None:
+            self._idle_cognitive_task.cancel()
+            try:
+                await self._idle_cognitive_task
+            except asyncio.CancelledError:
+                pass
+            self._idle_cognitive_task = None
         # Stop environment watcher.
         if self._watcher is not None:
             try:
@@ -1037,8 +1061,8 @@ class ChatSession:
             if not self._started:
                 return
 
-            # Don't fire if user was recently active.
-            idle_secs = time.monotonic() - self._last_activity
+            # Don't fire if user was recently active (uses user timer, not dream-reset timer).
+            idle_secs = time.monotonic() - self._last_user_activity
             if idle_secs < min_idle:
                 continue
 
@@ -1068,6 +1092,169 @@ class ChatSession:
                     await self._on_endogenous.put(response)
             except Exception:
                 log.warning("Endogenous turn failed", exc_info=True)
+
+    # ------------------------------------------------------------------
+    # v6.1 — Idle cognitive tick
+    # ------------------------------------------------------------------
+
+    async def _watch_idle_cognition(self) -> None:
+        """Background task: reduced cognitive pass while user is idle.
+
+        Runs every ``idle_cognitive_interval`` seconds (default 180s).
+        Only fires when the user has been idle for > 60s.
+        Does NOT call the LLM, Decider, or VoiceValidator.
+        Does NOT reset activity timers — idle thinking is not user activity.
+        """
+        interval = self._config.chat.idle_cognitive_interval
+        min_idle = 60.0  # seconds of user silence before ticking
+
+        while True:
+            try:
+                await asyncio.sleep(interval)
+            except asyncio.CancelledError:
+                return
+
+            if not self._started:
+                return
+
+            # Only tick when the user has been genuinely idle.
+            idle_secs = time.monotonic() - self._last_user_activity
+            if idle_secs < min_idle:
+                continue
+
+            # Consciousness must be initialized.
+            cs = self._engine.consciousness
+            if cs is None:
+                continue
+
+            try:
+                self._idle_cognitive_tick(cs)
+            except Exception:
+                log.debug("Idle cognitive tick failed", exc_info=True)
+
+    def _idle_cognitive_tick(self, cs) -> None:
+        """Execute one reduced cognitive pass — no LLM, no Decider.
+
+        Steps:
+          1. Build introspective Stimulus (empty user_message)
+          2. Thinker.think(max_iterations=5, RESPONSIVE)
+          3. Reactor.react(thought, psi) → real deltas
+          4. cs.evolve(deltas) → advances step_count
+          5. InitiativeEngine.evaluate → register to EndogenousSource
+          6. Accumulate curiosity from thought.needs
+          7. Register affect to EndogenousSource
+          8. Debug log
+        """
+        self._idle_tick_count += 1
+
+        # -- 1. Build introspective stimulus --------------------------------
+        affect_pad = None
+        if self._affect_engine is not None:
+            a = self._affect_engine.affect
+            affect_pad = (a.valence, a.arousal, a.dominance)
+
+        recalled: list = []
+        if self._episodic_memory is not None:
+            try:
+                recalled = self._episodic_memory.recall(
+                    query="", psi=cs.psi, limit=3,
+                )
+            except Exception:
+                pass
+
+        prev_reward = self._reward_history[-1] if self._reward_history else None
+
+        stimulus = Stimulus(
+            user_message="",
+            metrics={},
+            phi_iit=cs.compute_phi_iit(),
+            phase=cs.get_phase(),
+            psi=cs.psi,
+            psi_trajectory=list(cs.history[-10:]) if cs.history else [],
+            affect_state=affect_pad,
+            recalled_episodes=recalled,
+            previous_reward=prev_reward,
+        )
+
+        # -- 2. Think (reduced) --------------------------------------------
+        thought = self._thinker.think(
+            stimulus=stimulus,
+            max_iterations=5,
+            mode=ThinkMode.RESPONSIVE,
+        )
+
+        # -- 3. React → real deltas -----------------------------------------
+        reaction = ConsciousnessReactor.react(
+            thought=thought,
+            psi=cs.psi,
+        )
+        self._reactor_behavioral = reaction.behavioral
+
+        # -- 4. Evolve → advance step_count ---------------------------------
+        cs.evolve(info_deltas=reaction.deltas)
+
+        # -- 5. Initiative evaluation → EndogenousSource --------------------
+        if self._initiative_engine is not None:
+            try:
+                initiative = self._initiative_engine.evaluate(
+                    behavioral=reaction.behavioral,
+                    thought=thought,
+                    phi=cs.compute_phi_iit(),
+                    step=cs.step_count,
+                )
+                if (initiative.action != InitiativeAction.NONE
+                        and self._endogenous is not None):
+                    self._endogenous.register_initiative(
+                        action=initiative.action.value,
+                        reason=initiative.reason,
+                        urgency=initiative.urgency,
+                    )
+            except Exception:
+                log.debug("Idle tick initiative failed", exc_info=True)
+
+        # -- 6. Curiosity accumulation (same logic as send() step 9.7) ------
+        if self._endogenous is not None:
+            try:
+                for need in thought.needs:
+                    tag = need.description[:60]
+                    self._curiosity_counts[tag] = (
+                        self._curiosity_counts.get(tag, 0) + 1
+                    )
+                    count = self._curiosity_counts[tag]
+                    pressure = count * INV_PHI3  # 0.236 per recurrence
+                    if pressure >= INV_PHI2:  # 0.382 threshold
+                        question = (
+                            f"Pourquoi {tag} persiste-t-il ? "
+                            f"(observe {count} fois sans resolution)"
+                        )
+                        self._endogenous.register_curiosity(
+                            question=question, pressure=pressure,
+                        )
+                        self._curiosity_counts[tag] = 0
+            except Exception:
+                log.debug("Idle tick curiosity failed", exc_info=True)
+
+        # -- 7. Affect feed → EndogenousSource ------------------------------
+        if self._endogenous is not None and self._affect_engine is not None:
+            try:
+                self._endogenous.register_affect(
+                    arousal=self._affect_engine.affect.arousal,
+                    valence=self._affect_engine.affect.valence,
+                    cause="idle_tick",
+                )
+            except Exception:
+                log.debug("Idle tick affect failed", exc_info=True)
+
+        # -- 8. Debug log ---------------------------------------------------
+        log.debug(
+            "Idle cognitive tick #%d: step=%d phase=%s phi=%.3f obs=%d needs=%d",
+            self._idle_tick_count,
+            cs.step_count,
+            cs.get_phase(),
+            cs.compute_phi_iit(),
+            len(thought.observations),
+            len(thought.needs),
+        )
 
     # ------------------------------------------------------------------
     # v3.0 — Decider support
@@ -1501,6 +1688,7 @@ class ChatSession:
         # Reset inactivity timer only on human input.
         if origin == "user":
             self._last_activity = time.monotonic()
+            self._last_user_activity = time.monotonic()
 
         cs = self._engine.consciousness
         assert cs is not None  # noqa: S101  — guaranteed by start()
@@ -2516,8 +2704,9 @@ class ChatSession:
             psi_after=psi_a,
             phi_before=phi_score,
             phi_after=phi_score,
-            phi_iit_before=min(1.0, max(0.0, phi_before)),
-            phi_iit_after=min(1.0, max(0.0, phi_after)),
+            phi_iit_before=max(0.0, phi_before),
+            phi_iit_after=max(0.0, phi_after),
+            emergent_phi=cs.get_emergent_phi(),
             phase_before=phase_b,
             phase_after=phase_a,
             observations=obs_tags[:20],

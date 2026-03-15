@@ -35,6 +35,12 @@ from luna.dream.learnable_optimizer import (
     LearningTrace,
     consolidate_psi0,
 )
+from luna.dream.dream_journal import (
+    DreamJournal,
+    DreamJournalEntry,
+    build_journal_entry,
+    format_journal_context,
+)
 from luna.dream.learning import DreamLearning, Interaction, Skill
 from luna.dream.reflection import DreamReflection
 from luna.dream.simulation import DreamSimulation, SimulationResult
@@ -107,6 +113,7 @@ class DreamCycle:
         affect_engine: object | None = None,
         episodic_memory: object | None = None,
         synthesis: object | None = None,
+        dream_journal: DreamJournal | None = None,
     ) -> None:
         self._thinker = thinker
         self._graph = causal_graph
@@ -119,6 +126,7 @@ class DreamCycle:
         self._affect_engine = affect_engine
         self._episodic_memory = episodic_memory
         self._synthesis = synthesis
+        self._journal = dream_journal
 
     def is_mature(self) -> bool:
         """True if causal graph has enough edges for full dream.
@@ -154,6 +162,20 @@ class DreamCycle:
         start = time.monotonic()
         result = DreamResult(mode="full")
 
+        # Capture phi before dream for journal entry.
+        phi_before_dream = self._state.compute_phi_iit()
+
+        # Recall previous dream insights as weak context (cumulative memory).
+        journal_context = ""
+        if self._journal is not None:
+            recalled = self._journal.recall(limit=5)
+            if recalled:
+                journal_context = format_journal_context(recalled)
+                log.info(
+                    "Dream journal: recalled %d previous dream(s) as context",
+                    len(recalled),
+                )
+
         # Mode 1: Learning (Expression psi_4)
         # v5.0: Prefer learning from CycleRecords (cognitive experience).
         # Fall back to Interaction history for backward compatibility.
@@ -170,10 +192,14 @@ class DreamCycle:
             )
 
         # Mode 2: Reflection (Reflexion psi_2)
-        result.thought = self._reflection.reflect(max_iterations=100)
+        result.thought = self._reflection.reflect(
+            max_iterations=100, journal_context=journal_context,
+        )
 
         # Mode 3: Simulation (Integration psi_3)
-        result.simulations = self._simulation.simulate()
+        result.simulations = self._simulation.simulate(
+            journal_context=journal_context,
+        )
 
         # Mode 4: CEM optimization (if evaluator and params are available)
         if self._evaluator is not None and self._params is not None:
@@ -221,6 +247,17 @@ class DreamCycle:
         # Collect final stats
         result.graph_stats = self._graph.stats()
         result.duration = time.monotonic() - start
+
+        # Record dream in journal (persistent cumulative memory).
+        if self._journal is not None:
+            try:
+                phi_after_dream = self._state.compute_phi_iit()
+                entry = build_journal_entry(
+                    result, self._journal, phi_before_dream, phi_after_dream,
+                )
+                self._journal.record(entry)
+            except Exception:
+                log.warning("Dream journal recording failed", exc_info=True)
 
         return result
 

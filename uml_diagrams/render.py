@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Luna v6.0 — UML Diagram Renderer.
+"""Luna v7.0 — UML Diagram Renderer.
 
 Converts PlantUML .puml files to SVG and high-quality PNG with thumbnails.
 Large diagrams are split into readable parts.
@@ -180,7 +180,7 @@ def generate_index_html(output_dir: Path) -> None:
         '<head>',
         '  <meta charset="UTF-8">',
         '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
-        '  <title>Luna v6.0 — Architecture Diagrams</title>',
+        '  <title>Luna v7.0 — Architecture Diagrams</title>',
         '  <style>',
         '    * { box-sizing: border-box; margin: 0; padding: 0; }',
         '    body {',
@@ -255,7 +255,7 @@ def generate_index_html(output_dir: Path) -> None:
         '  </style>',
         '</head>',
         '<body>',
-        '  <h1>Luna v6.0 — Architecture Diagrams</h1>',
+        '  <h1>Luna v7.0 — Architecture Diagrams</h1>',
         '  <p class="subtitle">Auto-generated from source code introspection</p>',
         '  <div class="grid">',
     ]

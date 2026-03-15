@@ -23,6 +23,9 @@ from luna_common.constants import (
     PHASE_THRESHOLDS,
     TAU_DEFAULT,
 )
+from luna_common.consciousness.phi_iit_gaussian import (
+    compute_phi_iit_gaussian,
+)
 from luna_common.consciousness import (
     evolution_step,
     gamma_info,
@@ -30,6 +33,7 @@ from luna_common.consciousness import (
     gamma_temporal,
     get_psi0,
 )
+from luna_common.consciousness.emergent_phi import EmergentPhi
 from luna_common.consciousness.evolution import MassMatrix
 from luna_common.consciousness.simplex import project_simplex
 from luna_common.schemas import InfoGradient, PsiState
@@ -94,6 +98,12 @@ class ConsciousnessState:
 
         self.history: list[np.ndarray] = [h.copy() for h in history] if history else []
         self.step_count: int = step_count
+
+        # EmergentPhi tracker — discovers phi from coupling dynamics.
+        # Must be initialized before _compute_phase_from_scratch() which
+        # uses _get_dynamic_thresholds() derived from emergent phi.
+        self.emergent_phi: EmergentPhi = EmergentPhi()
+
         self._phase: str = self._compute_phase_from_scratch()
         self.phi_metrics_snapshot: dict | None = None
 
@@ -114,6 +124,10 @@ class ConsciousnessState:
         not other agents' states. Phi_IIT is passed to the mass matrix
         for adaptive dissipation (v5.3).
 
+        EmergentPhi feeds back into the evolution equation: the phi constant
+        in the dissipation term is the emergent value discovered by the
+        system's own coupling dynamics (Phase 2).
+
         Args:
             info_deltas: [d_mem, d_phi, d_iit, d_out] informational gradient.
             dt: Time step.
@@ -126,6 +140,9 @@ class ConsciousnessState:
         # Current phi_iit drives adaptive mass matrix rate.
         phi = self.compute_phi_iit()
 
+        # Get emergent phi (fallback to hardcoded PHI during bootstrap).
+        phi_e = self.emergent_phi.get_phi()
+
         psi_new = evolution_step(
             self.psi,
             self.psi0,
@@ -137,6 +154,7 @@ class ConsciousnessState:
             tau=tau,
             kappa=kappa,
             phi_iit=phi,
+            emergent_phi=phi_e,
         )
         self.psi = psi_new
         # Anti-stagnation: skip history append if psi is identical to last entry.
@@ -145,6 +163,11 @@ class ConsciousnessState:
             self.history.append(psi_new.copy())
         self.step_count += 1
         self._phase = self._apply_hysteresis(self._phase)
+
+        # Feed coupling energy to EmergentPhi tracker.
+        coupling_energy = self._compute_coupling_energy()
+        self.emergent_phi.update(coupling_energy)
+
         return psi_new
 
     # ------------------------------------------------------------------
@@ -152,11 +175,28 @@ class ConsciousnessState:
     # ------------------------------------------------------------------
 
     def compute_phi_iit(self, window: int = 50) -> float:
-        """Compute Phi_IIT via correlation method over the history window.
+        """Compute Phi_IIT via Gaussian Mutual Information (Phase 3).
 
-        Uses up to *window* recent entries. Requires at least 10 data points
-        for a statistically meaningful correlation. With fewer than *window*
-        entries (but >= 10), uses all available history.
+        Uses the information-theoretic measure from phi_iit_gaussian which
+        computes MI across all 7 non-trivial bipartitions and returns the
+        minimum.  This measure is UNBOUNDED above (can exceed 1.0 and reach
+        phi ~ 1.618 with strong coupling).
+
+        Falls back to the legacy correlation method if Gaussian MI returns 0
+        despite sufficient history (e.g. degenerate covariance).
+        """
+        result = compute_phi_iit_gaussian(self.history, window=window)
+        if result > 0.0:
+            return result
+        # Fallback: if Gaussian MI returned 0 but we have enough data,
+        # try the correlation method as a safety net.
+        return self._compute_phi_iit_correlation(window=window)
+
+    def _compute_phi_iit_correlation(self, window: int = 50) -> float:
+        """Legacy Phi_IIT via correlation method, bounded to [0, 1].
+
+        Kept as private fallback for cases where the Gaussian measure
+        returns 0 despite sufficient history (degenerate covariance, etc.).
         """
         n = len(self.history)
         if n < 10:
@@ -174,6 +214,16 @@ class ConsciousnessState:
                 n_pairs += 1
         return total / n_pairs if n_pairs > 0 else 0.0
 
+    def _compute_coupling_energy(self) -> float:
+        """Compute coupling energy E(t) = |psi^T . (Gt + Gx + Gc) . psi|."""
+        Gt, Gx, Gc = self.gammas
+        G_total = Gt + Gx + Gc
+        return abs(float(self.psi @ G_total @ self.psi))
+
+    def get_emergent_phi(self) -> float:
+        """Return the current emergent phi value."""
+        return self.emergent_phi.get_phi()
+
     # ------------------------------------------------------------------
     # Phase management
     # ------------------------------------------------------------------
@@ -182,12 +232,31 @@ class ConsciousnessState:
         """Return the current phase label."""
         return self._phase
 
+    def _get_dynamic_thresholds(self) -> dict[str, float]:
+        """Phase thresholds derived from emergent phi.
+
+        BROKEN:     0.0        (fixed)
+        FRAGILE:    1/phi_e^3  (~0.236)
+        FUNCTIONAL: 1/phi_e    (~0.618)
+        SOLID:      1.0        (fixed -- 1 bit of integrated information)
+        EXCELLENT:  phi_e      (~1.618 -- the golden attractor)
+        """
+        phi_e = self.emergent_phi.get_phi()
+        return {
+            "BROKEN": 0.0,
+            "FRAGILE": 1.0 / (phi_e ** 3),
+            "FUNCTIONAL": 1.0 / phi_e,
+            "SOLID": 1.0,
+            "EXCELLENT": phi_e,
+        }
+
     def _compute_phase_from_scratch(self) -> str:
         """Determine phase from phi_iit without hysteresis (for init)."""
         phi = self.compute_phi_iit()
+        thresholds = self._get_dynamic_thresholds()
         phase = _PHASES[0]
         for name in _PHASES:
-            if phi >= PHASE_THRESHOLDS[name]:
+            if phi >= thresholds[name]:
                 phase = name
         return phase
 
@@ -199,19 +268,20 @@ class ConsciousnessState:
         Allows multiple steps per call so the phase converges in one evolve().
         """
         phi = self.compute_phi_iit()
+        thresholds = self._get_dynamic_thresholds()
         current_idx = _PHASES.index(current_phase)
 
         # Upgrade — walk up as far as phi justifies.
         while current_idx < len(_PHASES) - 1:
             next_phase = _PHASES[current_idx + 1]
-            if phi >= PHASE_THRESHOLDS[next_phase] + HYSTERESIS_BAND:
+            if phi >= thresholds[next_phase] + HYSTERESIS_BAND:
                 current_idx += 1
             else:
                 break
 
         # Downgrade — walk down as far as phi dictates.
         while current_idx > 0:
-            if phi < PHASE_THRESHOLDS[_PHASES[current_idx]] - HYSTERESIS_BAND:
+            if phi < thresholds[_PHASES[current_idx]] - HYSTERESIS_BAND:
                 current_idx -= 1
             else:
                 break
@@ -372,6 +442,7 @@ class ConsciousnessState:
             "phase": self._phase,
             "phi_iit": self.compute_phi_iit(),
             "history_tail": [h.tolist() for h in self.history[-100:]],
+            "emergent_phi": self.emergent_phi.snapshot(),
         }
         # Always persist phi_metrics: use explicit param, else cached snapshot.
         effective_metrics = phi_metrics or self.phi_metrics_snapshot
@@ -477,6 +548,10 @@ class ConsciousnessState:
 
             # v2.4+ — PhiScorer metrics snapshot (None if absent = backward-compat).
             state.phi_metrics_snapshot: dict | None = data.get("phi_metrics")
+
+            # Restore EmergentPhi tracker state if available.
+            if "emergent_phi" in data:
+                state.emergent_phi.restore(data["emergent_phi"])
 
             return state
 

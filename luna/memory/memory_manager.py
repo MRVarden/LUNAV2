@@ -405,7 +405,7 @@ class MemoryManager:
             import zstandard as zstd
 
             cctx = zstd.ZstdCompressor(level=3)
-            compressed = cctx.compress(jsonl.encode("utf-8"))
+            compressed = cctx.compress(jsonl.encode("utf-8", errors="replace"))
             tmp = cold_path.with_suffix(".tmp")
             with open(tmp, "wb") as f:
                 f.write(compressed)

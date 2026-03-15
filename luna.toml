@@ -1,9 +1,10 @@
-# Luna v6.0 Configuration — Resilience
+# Luna v7.0 Configuration — EmergentPhi
 # All Phi-derived parameters are computed from PHI in luna_common.constants
+# φ is now discovered by the 4 cognitive dimensions (see EmergentPhi)
 # This file is for runtime configuration only.
 
 [luna]
-version = "6.0.0"
+version = "7.0.0"
 agent_name = "LUNA"
 data_dir = "memory_fractal"
 
@@ -87,6 +88,12 @@ max_generations_per_hour = 100
 max_commits_per_hour = 20
 watchdog_threshold = 3
 
+[backup]
+enabled = true
+backup_dir = "memory_fractal/backups"
+backup_interval_ticks = 100        # Every ~5 hours at 3 min/tick
+max_backups = 13                   # Fibonacci — rolling window
+
 [identity]
 ledger_file = "luna/data/identity_ledger.jsonl"
 founding_docs = ["docs/FOUNDERS_MEMO.md", "docs/LUNA_CONSTITUTION.md", "docs/FOUNDING_EPISODES.md"]
@@ -95,6 +102,6 @@ recovery_enabled = true
 [api]
 host = "127.0.0.1"
 port = 8618                    # floor(PHI * 5326) = 8618
-auth_enabled = true               # Creer config/api_token avec un token secret avant d'exposer l'API
+auth_enabled = false              # Activer avant d'exposer l'API hors localhost
 auth_token_file = "config/api_token"
 rate_limit_rpm = 60

@@ -35,6 +35,8 @@ from luna_common.consciousness import (
     get_psi0,
 )
 from luna_common.consciousness.context import Context, ContextBuilder
+from luna_common.consciousness.emergent_phi import EmergentPhi
+from luna_common.consciousness.phi_iit_gaussian import compute_phi_iit_gaussian
 from luna_common.consciousness.evolution import MassMatrix
 from luna_common.schemas import (
     IntegrationCheck,
@@ -101,14 +103,24 @@ class TestSingleAgentConsciousnessState:
         np.random.seed(42)
 
         # Raw path — must replicate CS.evolve() behavior including phi_iit
+        # and EmergentPhi feedback (Phase 2 wiring).
         psi0 = get_psi0("LUNA")
         psi_raw = psi0.copy()
         mass_raw = MassMatrix(psi0)
         gammas = (gamma_temporal(), gamma_spatial(), gamma_info())
         raw_history: list[np.ndarray] = []
+        emergent_phi_tracker = EmergentPhi()
 
         def _compute_phi_from_history(history: list[np.ndarray], window: int = 50) -> float:
-            """Mirror ConsciousnessState.compute_phi_iit for the raw path."""
+            """Mirror ConsciousnessState.compute_phi_iit for the raw path.
+
+            Phase 3: Uses Gaussian MI with correlation fallback, matching
+            the implementation in ConsciousnessState.compute_phi_iit().
+            """
+            result = compute_phi_iit_gaussian(history, window=window)
+            if result > 0.0:
+                return result
+            # Fallback: correlation method
             n = len(history)
             if n < 10:
                 return 0.0
@@ -127,14 +139,23 @@ class TestSingleAgentConsciousnessState:
         for step in range(100):
             info_base = 0.02 * np.random.randn(4) * (1.0 / (1 + step / 100))
             phi = _compute_phi_from_history(raw_history)
+            phi_e = emergent_phi_tracker.get_phi()
             psi_raw = evolution_step(
                 psi_raw, psi0, mass_raw, gammas,
                 history=raw_history,
                 info_deltas=info_base.tolist(),
                 kappa=KAPPA_DEFAULT,
                 phi_iit=phi,
+                emergent_phi=phi_e,
             )
-            raw_history.append(psi_raw.copy())
+            # Mirror anti-stagnation check from CS.evolve()
+            if not raw_history or not np.allclose(psi_raw, raw_history[-1], atol=1e-10):
+                raw_history.append(psi_raw.copy())
+            # Feed coupling energy to EmergentPhi (mirrors CS.evolve())
+            Gt, Gx, Gc = gammas
+            G_total = Gt + Gx + Gc
+            coupling_energy = abs(float(psi_raw @ G_total @ psi_raw))
+            emergent_phi_tracker.update(coupling_energy)
 
         # ConsciousnessState path (same seed, same noise)
         np.random.seed(42)

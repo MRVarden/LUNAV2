@@ -345,6 +345,10 @@ class LunaEngine:
             # Phase 2 — Phi Engine status
             "quality_score": self.phi_scorer.score(),
             "phi_metrics": self.phi_scorer.get_all_metrics(),
+            # EmergentPhi — self-discovered golden ratio
+            "emergent_phi": cs.get_emergent_phi(),
+            "emergent_phi_precision": cs.emergent_phi.precision(),
+            "emergent_phi_bootstrapping": cs.emergent_phi.is_bootstrapping(),
         }
 
         if self._last_health_conv is not None:

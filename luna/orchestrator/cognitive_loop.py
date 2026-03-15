@@ -58,6 +58,7 @@ from luna.consciousness.watcher import EnvironmentWatcher, WatcherEvent, Watcher
 
 # --- Dream ---
 from luna.dream.dream_cycle import DreamCycle, DreamResult, LegacyDreamCycle
+from luna.dream.dream_journal import DreamJournal
 from luna.dream.learning import DreamLearning
 from luna.dream.priors import DreamPriors
 from luna.dream.reflection import DreamReflection
@@ -83,6 +84,7 @@ from luna.safety.kill_switch import KillSwitch
 from luna.safety.watchdog import Watchdog
 from luna.safety.rate_limiter import RateLimiter
 from luna.safety.snapshot_manager import SnapshotManager
+from luna.safety.state_backup import StateBackup
 
 # --- Fingerprint ---
 from luna.fingerprint.ledger import FingerprintLedger
@@ -175,6 +177,7 @@ class CognitiveLoop:
         self.dream_cycle: DreamCycle | None = None
         self._dream_learning: DreamLearning | None = None
         self.dream_priors: DreamPriors | None = None
+        self.dream_journal: DreamJournal | None = None
 
         # ── LLM health (v6.0) ────────────────────────────────────────
         self.circuit_breaker: CircuitBreaker = CircuitBreaker()
@@ -205,6 +208,7 @@ class CognitiveLoop:
         self._watchdog: Watchdog | None = None
         self._rate_limiter: RateLimiter | None = None
         self._snapshot_manager: SnapshotManager | None = None
+        self._state_backup: StateBackup | None = None
 
         # ── Heartbeat & sleep ────────────────────────────────────────
         self._heartbeat: Heartbeat | None = None
@@ -331,6 +335,15 @@ class CognitiveLoop:
         self.save_v35_state()
         self.save_checkpoint()
 
+        # Final resilience backup on shutdown.
+        if self._state_backup is not None:
+            try:
+                path = self._state_backup.create_backup()
+                if path is not None:
+                    log.info("Shutdown resilience backup: %s", path.name)
+            except Exception:
+                log.warning("Shutdown resilience backup failed", exc_info=True)
+
         # Audit shutdown.
         if self._audit is not None:
             await self._audit.record(
@@ -436,6 +449,22 @@ class CognitiveLoop:
             max_snapshots=self.config.safety.max_snapshots,
             retention_days=self.config.safety.retention_days,
         )
+
+        # ── State backup (resilience) ────────────────────────────────
+        if self.config.backup.enabled:
+            memory_root = self.config.resolve(self.config.memory.fractal_root)
+            backup_dir = self.config.resolve(self.config.backup.backup_dir)
+            self._state_backup = StateBackup(
+                memory_root=memory_root,
+                backup_dir=backup_dir,
+                max_backups=self.config.backup.max_backups,
+            )
+            log.info(
+                "StateBackup initialized: %s (max %d, every %d ticks)",
+                backup_dir,
+                self.config.backup.max_backups,
+                self.config.backup.backup_interval_ticks,
+            )
 
         # ── Fingerprint ────────────────────────────────────────────────
         if self.config.fingerprint.enabled:
@@ -582,6 +611,12 @@ class CognitiveLoop:
                 identity_context=self.engine.identity_context,
             )
 
+            # DreamJournal — persistent cumulative dream memory (append-only JSONL).
+            journal_path = mem_root / "dream_journal.jsonl"
+            self.dream_journal = DreamJournal(journal_path)
+            if self.dream_journal.count > 0:
+                log.info("DreamJournal loaded: %d entries", self.dream_journal.count)
+
             # DreamCycle — after EpisodicMemory + AffectEngine + Params + Evaluator.
             # Synthesis is set to None here; will be wired after CycleStore init below.
             self.dream_cycle = DreamCycle(
@@ -595,6 +630,7 @@ class CognitiveLoop:
                 params=self.learnable_params,
                 affect_engine=self.affect_engine,
                 episodic_memory=self.episodic_memory,
+                dream_journal=self.dream_journal,
             )
 
             # InitiativeEngine.
@@ -964,6 +1000,17 @@ class CognitiveLoop:
             except Exception:
                 log.warning("Autosave failed", exc_info=True)
 
+        # 10. BACKUP -- periodic resilience backup of critical state.
+        if self._state_backup is not None:
+            backup_every = self.config.backup.backup_interval_ticks
+            if backup_every > 0 and self._tick_count % backup_every == 0:
+                try:
+                    path = self._state_backup.create_backup()
+                    if path is not None:
+                        log.info("Resilience backup at tick %d: %s", self._tick_count, path.name)
+                except Exception:
+                    log.warning("Resilience backup failed at tick %d", self._tick_count, exc_info=True)
+
     def _feed_watcher_to_factory(self, events: list[WatcherEvent]) -> None:
         """Feed significant watcher events to ObservationFactory."""
         _PATTERN_MAP = {
@@ -1066,6 +1113,15 @@ class CognitiveLoop:
 
             self.save_v35_state()
             self.save_checkpoint()
+
+            # Post-dream resilience backup — dreams consolidate critical state.
+            if self._state_backup is not None:
+                try:
+                    path = self._state_backup.create_backup()
+                    if path is not None:
+                        log.info("Post-dream resilience backup: %s", path.name)
+                except Exception:
+                    log.warning("Post-dream resilience backup failed", exc_info=True)
         except Exception:
             log.warning("Autonomous dream failed", exc_info=True)
 
@@ -1134,6 +1190,11 @@ class CognitiveLoop:
     def snapshot_manager(self) -> SnapshotManager | None:
         """Snapshot manager instance (available after start)."""
         return self._snapshot_manager
+
+    @property
+    def state_backup(self) -> StateBackup | None:
+        """State backup instance for resilience (available after start)."""
+        return self._state_backup
 
     @property
     def sleep_manager(self) -> SleepManager | None:

@@ -18,4 +18,4 @@ Shared library (imported, never modified):
     luna_common/        # Matrices, evolution, schemas, constants, phi_engine
 """
 
-__version__ = "6.0.0"
+__version__ = "7.0.0"

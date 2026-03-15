@@ -323,11 +323,15 @@ class TestPhiIIT:
             f"Phi_IIT with minimal history should be 0 or non-negative, got {result}"
         )
 
-    def test_phi_iit_bounded(self, luna_state):
-        """Phi_IIT should be bounded [0, 1] when normalized."""
+    def test_phi_iit_non_negative(self, luna_state):
+        """Phi_IIT (Gaussian MI) should be non-negative.
+
+        Phase 3: The Gaussian MI measure is unbounded above (can exceed 1.0
+        and reach phi ~ 1.618), so we only check the lower bound.
+        """
         for _ in range(100):
             luna_state.evolve([0.01, 0.02, -0.01, 0.005])
         result = luna_state.compute_phi_iit()
-        assert 0.0 <= result <= 1.0 + 1e-6, (
-            f"Phi_IIT out of bounds: {result}"
+        assert result >= 0.0, (
+            f"Phi_IIT should be non-negative, got {result}"
         )

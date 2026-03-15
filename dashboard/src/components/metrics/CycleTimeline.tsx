@@ -39,8 +39,13 @@ export function CycleTimeline({ cycles }: Props) {
                 <div className="glass-panel px-2 py-1 text-[9px] whitespace-nowrap">
                   <div className="text-luna-text font-mono">{cycle.intent}</div>
                   <div className="text-luna-text-dim">
-                    Φ {cycle.phi_iit_after.toFixed(3)} • {cycle.duration_seconds.toFixed(1)}s
+                    {'\u03A6'} {cycle.phi_iit_after.toFixed(3)} • {cycle.duration_seconds.toFixed(1)}s
                   </div>
+                  {cycle.emergent_phi != null && (
+                    <div style={{ color: '#FFD700' }} className="font-mono">
+                      {'\u03C6'}e {cycle.emergent_phi.toFixed(4)}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

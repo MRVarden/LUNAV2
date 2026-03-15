@@ -250,6 +250,14 @@ class TestObserve:
         tags = [o.tag for o in obs]
         assert "phi_low" in tags
 
+    def test_phi_excellent_detected(self, thinker):
+        """phi_iit > 1.0 produces phi_excellent (Phase 3: Gaussian MI)."""
+        s = _make_stimulus(phi_iit=1.3)
+        obs = thinker._observe(s)
+        tags = [o.tag for o in obs]
+        assert "phi_excellent" in tags
+        assert "phi_healthy" in tags  # phi_excellent also implies phi_healthy
+
     def test_metric_low_detected(self, thinker):
         """Low metric produces metric_low_<name> observation."""
         s = _make_stimulus(metrics={"identity_anchoring": 0.3})

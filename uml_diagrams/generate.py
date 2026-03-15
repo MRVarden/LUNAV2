@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Luna v6.0 — UML Diagram Generator.
+"""Luna v7.0 — UML Diagram Generator.
 
 Introspects the Luna codebase via AST parsing and generates
 PlantUML (.puml) source files for 6 architecture diagrams.
@@ -255,7 +255,7 @@ def generate_01_overview(luna_modules: list[ModuleInfo]) -> str:
     lines = [
         "@startuml 01_luna_architecture_overview",
         PLANTUML_THEME,
-        'title Luna v6.0 — Architecture Overview\\nAuto-generated from source code',
+        'title Luna v7.0 — Architecture Overview\\nAuto-generated from source code',
         "",
     ]
 
@@ -315,7 +315,7 @@ def generate_01_overview(luna_modules: list[ModuleInfo]) -> str:
     # Legend
     lines.append("")
     lines.append("legend right")
-    lines.append("  Luna v6.0 Architecture")
+    lines.append("  Luna v7.0 Architecture")
     lines.append("  Auto-generated from source")
     lines.append("  Ψ = (P, R, I, E) on simplex")
     lines.append("  dΨ/dt = Gt·dt + Gx·dx + Gc·dc")
@@ -331,7 +331,7 @@ def generate_02_common_classes(common_modules: list[ModuleInfo]) -> str:
     lines = [
         "@startuml 02_luna_common_classes",
         PLANTUML_THEME,
-        'title luna_common v6.0 — Shared Classes\\nAuto-generated from source code',
+        'title luna_common v7.0 — Shared Classes\\nAuto-generated from source code',
         "",
     ]
 
@@ -360,7 +360,7 @@ def generate_03_core_architecture(luna_modules: list[ModuleInfo]) -> str:
         "@startuml 03_luna_core_architecture",
         PLANTUML_THEME,
         "left to right direction",
-        'title Luna v6.0 — Core Architecture\\nAuto-generated from source code',
+        'title Luna v7.0 — Core Architecture\\nAuto-generated from source code',
         "",
     ]
 
@@ -404,7 +404,7 @@ def generate_04_consciousness_pipeline(luna_modules: list[ModuleInfo]) -> str:
     # This is architectural knowledge, not purely introspected
     return f"""@startuml 04_consciousness_pipeline
 {PLANTUML_THEME}
-title Luna v6.0 — Consciousness Pipeline\\nAuto-generated architecture diagram
+title Luna v7.0 — Consciousness Pipeline\\nAuto-generated architecture diagram
 
 package "Input" #1A0A2E {{
   component [Watcher] as WAT
@@ -545,7 +545,7 @@ def generate_05_sensorimotor_cycle() -> str:
     """Diagram 5: Sensorimotor cycle — one complete chat turn (sequence diagram)."""
     return f"""@startuml 05_sensorimotor_cycle
 {PLANTUML_THEME}
-title Luna v6.0 — Sensorimotor Cycle\\nOne complete chat turn (auto-generated)
+title Luna v7.0 — Sensorimotor Cycle\\nOne complete chat turn (auto-generated)
 
 participant User
 participant ChatSession as CS
@@ -633,7 +633,7 @@ def generate_06_state_machines() -> str:
     """Diagram 6: State machines — consciousness phases, sleep states, circuit breaker."""
     return f"""@startuml 06_state_machines
 {PLANTUML_THEME}
-title Luna v6.0 -- State Machines\\nAuto-generated
+title Luna v7.0 -- State Machines\\nAuto-generated
 
 state "Consciousness Phases" as phases #1A0A2E {{
   state "Latent\\nPhi < 0.236" as latent

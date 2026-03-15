@@ -9,6 +9,8 @@ Usage::
     python -m luna chat --log-level DEBUG    # verbose
     python -m luna set-kill-password         # configure kill switch password
     python -m luna kill                      # emergency stop
+    python -m luna restore --latest          # restore from most recent backup
+    python -m luna restore --list            # list available backups
 """
 
 from __future__ import annotations
@@ -41,6 +43,12 @@ def main() -> None:
 
     set_pw_parser = sub.add_parser("set-kill-password", help="Set kill switch password")
     set_pw_parser.add_argument("--config", default="luna.toml", help="Path to luna.toml")
+
+    restore_parser = sub.add_parser("restore", help="Restore state from backup")
+    restore_parser.add_argument("--config", default="luna.toml", help="Path to luna.toml")
+    restore_parser.add_argument("--latest", action="store_true", help="Restore from most recent backup")
+    restore_parser.add_argument("--list", action="store_true", help="List available backups")
+    restore_parser.add_argument("--archive", default=None, help="Path to specific archive to restore")
 
     args = parser.parse_args()
 
@@ -195,6 +203,77 @@ def main() -> None:
         print(f"Emergency stop written: {sentinel_path}")
         print(f"Reason: {args.reason}")
         print("Luna will detect this on next message (chat) or heartbeat cycle.")
+
+    elif args.command == "restore":
+        from pathlib import Path
+
+        from luna.safety.state_backup import StateBackup
+
+        try:
+            cfg = LunaConfig.load(args.config)
+        except FileNotFoundError:
+            print(f"Config not found: {args.config}", file=sys.stderr)
+            sys.exit(1)
+
+        memory_root = cfg.resolve(cfg.memory.fractal_root)
+        backup_dir = cfg.resolve(cfg.backup.backup_dir)
+        sb = StateBackup(
+            memory_root=memory_root,
+            backup_dir=backup_dir,
+            max_backups=cfg.backup.max_backups,
+        )
+
+        if args.list:
+            backups = sb.list_backups()
+            if not backups:
+                print("No backups available.")
+            else:
+                print(f"Available backups ({len(backups)}):\n")
+                for i, b in enumerate(backups):
+                    size_kb = b.stat().st_size / 1024
+                    print(f"  [{i}] {b.name}  ({size_kb:.1f} KB)")
+                status = sb.get_status()
+                print(f"\n  Compression: {status['compression']}")
+                print(f"  Archive dir: {status['archive_count']} archived")
+
+        elif args.latest:
+            ans = input(
+                f"Restore latest backup to {memory_root}?\n"
+                f"This will OVERWRITE existing files. [y/N] "
+            )
+            if ans.lower() not in ("y", "yes"):
+                print("Cancelled.")
+                sys.exit(0)
+
+            if sb.restore_latest():
+                print("Restore complete.")
+            else:
+                print("Restore failed — check logs.", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.archive:
+            archive_path = Path(args.archive)
+            if not archive_path.exists():
+                print(f"Archive not found: {archive_path}", file=sys.stderr)
+                sys.exit(1)
+
+            ans = input(
+                f"Restore from {archive_path.name} to {memory_root}?\n"
+                f"This will OVERWRITE existing files. [y/N] "
+            )
+            if ans.lower() not in ("y", "yes"):
+                print("Cancelled.")
+                sys.exit(0)
+
+            if sb.restore_from(archive_path):
+                print("Restore complete.")
+            else:
+                print("Restore failed — check logs.", file=sys.stderr)
+                sys.exit(1)
+
+        else:
+            print("Usage: python -m luna restore --latest | --list | --archive <path>")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

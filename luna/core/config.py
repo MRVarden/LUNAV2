@@ -115,6 +115,8 @@ class ChatSection:
     idle_heartbeat: bool = True        # idle_step() between messages
     save_conversations: bool = True    # Persist turns as seeds
     prompt_prefix: str = "luna> "      # REPL prompt
+    idle_cognitive_tick: bool = True    # Reduced cognitive pass while idle
+    idle_cognitive_interval: float = 180.0  # Seconds between idle ticks (3 min)
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,6 +155,16 @@ class SafetySection:
     max_generations_per_hour: int = 100
     max_commits_per_hour: int = 20
     watchdog_threshold: int = 3
+
+
+@dataclass(frozen=True, slots=True)
+class BackupSection:
+    """Configuration for periodic state backup (resilience)."""
+
+    enabled: bool = True
+    backup_dir: str = "memory_fractal/backups"
+    backup_interval_ticks: int = 100  # Every ~5 hours at 3 min/tick
+    max_backups: int = 13             # Fibonacci — rolling window
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +208,7 @@ class LunaConfig:
     metrics: MetricsSection = field(default_factory=MetricsSection)
     fingerprint: FingerprintSection = field(default_factory=FingerprintSection)
     safety: SafetySection = field(default_factory=SafetySection)
+    backup: BackupSection = field(default_factory=BackupSection)
     identity: IdentitySection = field(default_factory=IdentitySection)
     api: APISection = field(default_factory=APISection)
     cognitive_loop: CognitiveLoopSection = field(default_factory=CognitiveLoopSection)
@@ -316,6 +329,8 @@ class LunaConfig:
             idle_heartbeat=chat_raw.get("idle_heartbeat", True),
             save_conversations=chat_raw.get("save_conversations", True),
             prompt_prefix=chat_raw.get("prompt_prefix", "luna> "),
+            idle_cognitive_tick=chat_raw.get("idle_cognitive_tick", True),
+            idle_cognitive_interval=chat_raw.get("idle_cognitive_interval", 180.0),
         )
 
         met_raw = raw.get("metrics", {})
@@ -348,6 +363,14 @@ class LunaConfig:
             max_generations_per_hour=safety_raw.get("max_generations_per_hour", 100),
             max_commits_per_hour=safety_raw.get("max_commits_per_hour", 20),
             watchdog_threshold=safety_raw.get("watchdog_threshold", 3),
+        )
+
+        bk_raw = raw.get("backup", {})
+        backup = BackupSection(
+            enabled=bk_raw.get("enabled", True),
+            backup_dir=bk_raw.get("backup_dir", "memory_fractal/backups"),
+            backup_interval_ticks=bk_raw.get("backup_interval_ticks", 100),
+            max_backups=bk_raw.get("max_backups", 13),
         )
 
         id_raw = raw.get("identity", {})
@@ -392,6 +415,7 @@ class LunaConfig:
             metrics=metrics,
             fingerprint=fingerprint,
             safety=safety,
+            backup=backup,
             identity=identity,
             api=api,
             cognitive_loop=cognitive_loop,

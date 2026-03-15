@@ -17,7 +17,7 @@ import math
 
 import numpy as np
 
-from luna_common.constants import PHI, INV_PHI, INV_PHI2, INV_PHI3
+from luna_common.constants import PHI, INV_PHI, INV_PHI2, INV_PHI3, HARDCODED_PHI
 from luna_common.schemas.cycle import (
     CycleRecord,
     RewardComponent,
@@ -157,10 +157,14 @@ class Evaluator:
         return _clamp(2.0 * raw - 1.0)
 
     def _compute_integration_coherence(self, record: CycleRecord) -> float:
-        """Based on Phi_IIT. Maps [0.33, 0.618] -> [-1, +1]."""
+        """Based on Phi_IIT. Maps [0.33, 1.618] -> [-1, +1].
+
+        Phase 3: upper target raised to HARDCODED_PHI (1.618) because
+        Gaussian MI measure is unbounded above.
+        """
         phi_iit = record.phi_iit_after
         rest = 0.33
-        active = INV_PHI  # 0.618
+        active = HARDCODED_PHI  # 1.618 — Gaussian MI can reach and exceed phi
         if phi_iit <= rest:
             return -1.0
         if phi_iit >= active:
@@ -271,7 +275,7 @@ class Evaluator:
 
         # -- Priority 2: Integration --
         rest = 0.33
-        active = INV_PHI
+        active = HARDCODED_PHI  # 1.618 — Phase 3: Gaussian MI unbounded
         if phi_iit <= rest:
             ic = -1.0
         elif phi_iit >= active:

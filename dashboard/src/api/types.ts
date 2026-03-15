@@ -29,6 +29,9 @@ export interface ConsciousnessSnapshot {
   agent_name: string                             // str
   phi_iit: number                                // float [0, 1]
   phase: Phase                                   // consciousness phase (from Phi_IIT)
+  emergent_phi: number                           // float, current emergent phi value (~1.618)
+  emergent_phi_precision: number                 // int, number of correct decimals
+  emergent_phi_bootstrapping: boolean            // bool, true if still bootstrapping
 }
 
 // ── Affect ─────────────────────────────────────────────────────
@@ -144,6 +147,9 @@ export interface CycleRecord {
   llm_failed: boolean                            // bool
   llm_latency_ms: number                         // float >= 0
   llm_circuit_state: string                      // "closed" | "open" | "half_open"
+
+  // Emergent phi
+  emergent_phi?: number | null                  // float | null, convergent phi value
 
   // Meta
   duration_seconds: number                      // float >= 0

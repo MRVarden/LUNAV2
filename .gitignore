@@ -1,5 +1,5 @@
-# Luna v2.3.0 — Git Ignore
-# Mis a jour le 28 fevrier 2026
+# Luna v7.0.0 — Git Ignore (Monorepo: luna + luna_common)
+# Mis a jour le 15 mars 2026
 
 # Non-Luna scripts (à déplacer)
 scripts/
@@ -59,9 +59,10 @@ env/
 secrets/
 config/fingerprint.key
 config/api_token
-# Luna runtime config (peut contenir api_key)
-luna.toml
-!luna.toml.example
+# Luna runtime config — toml.example pour la distribution
+# luna.toml est versionne dans le monorepo (api_key via env var uniquement)
+!luna.toml
+luna.toml.local
 # Kill switch password hash — pushed intentionally (scrypt, irréversible)
 # config/kill_password.hash
 
@@ -231,6 +232,7 @@ test_*.json
 !docs/Architecture/**
 !docs/screenshots/
 !docs/screenshots/**
+!simulations/*.png
 
 *.html
 !docs/**/*.html
@@ -239,6 +241,7 @@ test_*.json
 # Node / ML / Docker
 # ============================================
 node_modules/
+.vite/
 package-lock.json
 yarn.lock
 models/
@@ -254,6 +257,10 @@ DockerDesktopWSL/
 # ============================================
 .ipynb_checkpoints
 *.ipynb
+
+# UML tooling (binary)
+uml_diagrams/plantuml.jar
+uml_diagrams/output/
 
 # ============================================
 # Docker (infra v1 — non utilise en v2.3)

@@ -32,12 +32,21 @@ from luna.dream.priors import (
     populate_dream_priors,
 )
 from luna.dream.simulation import DreamSimulation, Scenario, SimulationResult
+from luna.dream.dream_journal import (
+    DreamJournal,
+    DreamJournalEntry,
+    build_journal_entry,
+    format_journal_context,
+)
 
 __all__ = [
     "Awakening",
     "AwakeningReport",
+    "build_journal_entry",
     "DreamCycle",
     "DreamHarvest",
+    "DreamJournal",
+    "DreamJournalEntry",
     "DreamLearning",
     "DreamPhase",
     "DreamPriors",
@@ -57,6 +66,7 @@ __all__ = [
     "SleepManager",
     "SleepState",
     "SleepStatus",
+    "format_journal_context",
     "load_profiles",
     "populate_dream_priors",
     "save_profiles",

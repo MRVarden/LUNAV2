@@ -27,7 +27,7 @@ function deriveLiveReward(
     psi.reduce((sum, v, i) => sum + (v - psi0[i]) ** 2, 0)
   )
 
-  const INV_PHI = 0.618
+  const HARDCODED_PHI = 1.618
 
   // Same formulas as Evaluator._compute_*
   const ci = 1.0
@@ -37,8 +37,8 @@ function deriveLiveReward(
   const rest = 0.33
   let ic: number
   if (phiIit <= rest) ic = -1.0
-  else if (phiIit >= INV_PHI) ic = 1.0
-  else ic = clamp(2.0 * (phiIit - rest) / (INV_PHI - rest) - 1.0, -1, 1)
+  else if (phiIit >= HARDCODED_PHI) ic = 1.0
+  else ic = clamp(2.0 * (phiIit - rest) / (HARDCODED_PHI - rest) - 1.0, -1, 1)
 
   const jsApprox = drift * drift * 0.5 // rough JS ~ 0.5 * L2^2 for simplex
   const jsNorm = jsApprox / Math.LN2

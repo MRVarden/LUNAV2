@@ -40,12 +40,18 @@ class DreamReflection:
     def reflect(
         self,
         max_iterations: int = 100,
+        journal_context: str = "",
     ) -> Thought:
         """Run deep reflection.
 
         Creates a minimal stimulus (no user message — Luna is dreaming)
         and lets the Thinker process for up to max_iterations.
         Updates the causal graph with discovered causalities.
+
+        Args:
+            max_iterations: Maximum thinking iterations.
+            journal_context: Optional context from previous dream journal
+                entries. Injected as a weak signal via Stimulus.
         """
         state = self._thinker._state
 
@@ -57,6 +63,7 @@ class DreamReflection:
             phase=state.get_phase(),
             psi=state.psi,
             psi_trajectory=list(state.history[-10:]) if state.history else [],
+            dream_journal_context=journal_context,
         )
 
         thought = self._thinker.think(

@@ -135,8 +135,18 @@ class TestEvaluatorComponents:
         assert rv.get("anti_collapse") < 0.0
 
     def test_integration_coherence_high_phi_iit(self):
+        """Phase 3: range is now [0.33, 1.618]. phi_iit=0.65 is mid-range, not max."""
         self.evaluator = Evaluator(psi_0=_PSI_LUNA)
         record = _make_record(phi_iit_after=0.65)
+        rv = self.evaluator.evaluate(record)
+        ic = rv.get("integration_coherence")
+        # 0.65 is in (0.33, 1.618) -> should be between -1 and +1, not saturated
+        assert -1.0 < ic < 1.0, f"Expected mid-range value, got {ic}"
+
+    def test_integration_coherence_at_phi(self):
+        """phi_iit at or above HARDCODED_PHI (1.618...) should yield +1.0."""
+        self.evaluator = Evaluator(psi_0=_PSI_LUNA)
+        record = _make_record(phi_iit_after=1.62)  # Slightly above HARDCODED_PHI
         rv = self.evaluator.evaluate(record)
         assert rv.get("integration_coherence") == 1.0
 

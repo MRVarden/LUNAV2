@@ -118,6 +118,7 @@ def counterfactual_replay(
         phi_after=record.phi_after,
         phi_iit_before=record.phi_iit_before,
         phi_iit_after=record.phi_iit_after,
+        emergent_phi=record.emergent_phi,
         phase_before=record.phase_before,
         phase_after=record.phase_after,
         observations=record.observations,

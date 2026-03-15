@@ -3,12 +3,15 @@
 import type { DashboardState, CycleRecord } from './types'
 
 const API_BASE = '/api'
+const API_TOKEN = import.meta.env.VITE_LUNA_API_TOKEN ?? ''
 
 async function fetchJson<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Accept': 'application/json' },
-    })
+    const headers: Record<string, string> = { 'Accept': 'application/json' }
+    if (API_TOKEN) {
+      headers['Authorization'] = `Bearer ${API_TOKEN}`
+    }
+    const res = await fetch(`${API_BASE}${path}`, { headers })
     if (!res.ok) return null
     return await res.json()
   } catch {
@@ -35,8 +38,11 @@ export function getMockState(): DashboardState {
       psi0_adaptive: [0, 0, 0, 0],
       step_count: 847,
       agent_name: 'Luna',
-      phi_iit: 0.618,
+      phi_iit: 1.2,
       phase: 'SOLID',
+      emergent_phi: 1.6135,
+      emergent_phi_precision: 3,
+      emergent_phi_bootstrapping: false,
     },
     affect: {
       affect: { valence: 0.3, arousal: 0.4, dominance: 0.6 },
@@ -187,6 +193,7 @@ function generateMockCycles(n: number): CycleRecord[] {
       auto_apply_candidate: i % 5 === 0,
       auto_applied: false,
       auto_rolled_back: false,
+      emergent_phi: 1.61 + Math.random() * 0.01,
       duration_seconds: 1.5 + Math.random() * 8,
       dream_priors_active: i % 5 === 0 ? 2 : 0,
     }

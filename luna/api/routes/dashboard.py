@@ -62,6 +62,9 @@ async def get_snapshot(orch: object = Depends(get_orchestrator)) -> dict:
             "agent_name": getattr(cs, "agent_name", "Luna"),
             "phi_iit": status.get("phi_iit", 0.0),
             "phase": status.get("phase", "unknown"),
+            "emergent_phi": status.get("emergent_phi"),
+            "emergent_phi_precision": status.get("emergent_phi_precision", 0),
+            "emergent_phi_bootstrapping": status.get("emergent_phi_bootstrapping", True),
         }
 
     # ── Affect ───────────────────────────────────────────────────

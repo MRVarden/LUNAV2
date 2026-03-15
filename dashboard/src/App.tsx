@@ -72,7 +72,15 @@ export default function App() {
             icon={<Zap className="w-4 h-4" />}
             className="col-span-3"
           >
-            {cs && <PhiGauge value={cs.phi_iit} phase={cs.phase ?? 'BROKEN'} />}
+            {cs && (
+              <PhiGauge
+                value={cs.phi_iit}
+                phase={cs.phase ?? 'BROKEN'}
+                emergentPhi={cs.emergent_phi ?? 1.5}
+                emergentPhiPrecision={cs.emergent_phi_precision ?? 0}
+                bootstrapping={cs.emergent_phi_bootstrapping ?? true}
+              />
+            )}
           </GlassCard>
 
           <GlassCard

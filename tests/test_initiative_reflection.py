@@ -308,9 +308,10 @@ class TestSelfReflectionIntegration:
 
         # Set previous phi much higher — must survive Reactor evolution shifting phi.
         # After v3.5.1, _input_evolve runs the Thinker+Reactor which evolves Ψ,
-        # potentially changing compute_phi_iit(). Use a large gap (0.50) to ensure
-        # the Decider still sees a significant drop.
-        session._phi_iit_history = [current_phi + 0.50, current_phi + 0.50]
+        # potentially changing compute_phi_iit(). Phase 3: Gaussian MI can produce
+        # values >> 1.0, so the gap must be large enough (2.0) to ensure the Decider
+        # still sees a significant drop after evolution.
+        session._phi_iit_history = [current_phi + 2.0, current_phi + 2.0]
 
         with patch(
             "luna.chat.session.build_voice_prompt",

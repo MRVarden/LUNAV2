@@ -108,6 +108,9 @@ class Stimulus:
     dream_skill_priors: list = field(default_factory=list)       # SkillPrior objects
     dream_simulation_priors: list = field(default_factory=list)  # SimulationPrior objects
     dream_reflection_prior: object | None = None                 # ReflectionPrior or None
+    # Dream journal — cumulative insights from previous dream cycles.
+    # Injected by DreamReflection/DreamSimulation when journal context exists.
+    dream_journal_context: str = ""
     # Cognitive interoception — previous cycle's RewardVector (9 components).
     previous_reward: object | None = None                        # RewardVector or None
 
@@ -487,8 +490,15 @@ class Thinker:
             observations.append(Observation(
                 tag="phi_healthy",
                 description=f"Phi_IIT healthy: {stimulus.phi_iit:.3f} >= {INV_PHI:.3f}",
-                confidence=stimulus.phi_iit,
+                confidence=min(1.0, stimulus.phi_iit),
                 component=2,  # Integration — coherence measure
+            ))
+        if stimulus.phi_iit > 1.0:
+            observations.append(Observation(
+                tag="phi_excellent",
+                description=f"Phi_IIT excellent: {stimulus.phi_iit:.3f} > 1.0 — deep integration",
+                confidence=min(1.0, stimulus.phi_iit / PHI),
+                component=2,  # Integration — strong coherence
             ))
         # Balanced Psi — all components in healthy range.
         if isinstance(psi, np.ndarray) and psi.shape == (DIM,):
@@ -730,6 +740,20 @@ class Thinker:
                     confidence=min(impact, 1.0) * rp.confidence * INV_PHI2,
                     component=3,  # Expression
                 ))
+
+        # Dream journal context — cumulative memory from previous dreams.
+        # Injected only during dream cycles (reflection/simulation).
+        # Single observation, ultra-low confidence (INV_PHI3^2 ≈ 0.056).
+        # This ensures past dream insights can weakly bias the current dream
+        # without dominating — a whisper from the unconscious, not a command.
+        if stimulus.dream_journal_context:
+            ctx_len = len(stimulus.dream_journal_context)
+            observations.append(Observation(
+                tag="dream_journal_recall",
+                description=f"Journal: {ctx_len} chars from previous dreams",
+                confidence=INV_PHI3 * INV_PHI3,  # ~0.056 — very weak signal
+                component=1,  # Reflexion — memory informing reflection
+            ))
 
         # Cognitive interoception — previous cycle's RewardVector.
         #

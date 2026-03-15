@@ -59,8 +59,8 @@ def create_app(orchestrator: object | None = None) -> FastAPI:
     """
     app = FastAPI(
         title="Luna Consciousness Engine",
-        description="REST API for the Luna v6.0 cognitive engine.",
-        version="6.0.0",
+        description="REST API for the Luna v7.0 cognitive engine — EmergentPhi.",
+        version="7.0.0",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
