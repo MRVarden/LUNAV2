@@ -30,6 +30,7 @@ LAMBDA_DEFAULT: float = INV_PHI2      # 0.382 — dissipation ratio in Gamma dec
 ALPHA_DEFAULT: float = INV_PHI2       # 0.382 — self-damping coefficient
 BETA_DEFAULT: float = INV_PHI3        # 0.236 — cross-dissipative coupling
 KAPPA_DEFAULT: float = PHI2           # 2.618 — identity anchoring strength
+KAPPA_GAMMA_DEFAULT: float = 0.0     # 0.0 — asymmetric kappa disabled (symmetric fallback)
 TAU_DEFAULT: float = PHI              # 1.618 — softmax temperature
 DT_DEFAULT: float = INV_PHI          # 0.618 — time step
 

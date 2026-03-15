@@ -367,7 +367,7 @@ iΓ^t ∂_t Ψ + iΓ^x ∂_x Ψ + iΓ^c ∂_c Ψ − φ·M·Ψ + κ(Ψ₀ − Ψ
 - **Ψ₀** = `psi0_core + INV_PHI3 × psi0_adaptive` (two-layer identity)
 - **M** : φ-adaptive mass matrix (EMA rate tracks Φ_IIT)
 - **Γ** : antisymmetric exchange + symmetric dissipation (spectrally normalized)
-- **κ** = φ² = 2.618 (identity anchoring)
+- **κ** = φ² = 2.618 (identity anchoring, asymmetric when γ > 0)
 - **τ** = φ = 1.618 (softmax temperature)
 - **dt** = 1/φ = 0.618 (time step)
 

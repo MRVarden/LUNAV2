@@ -80,7 +80,7 @@ iΓᵗ ∂ₜΨ + iΓˣ ∂ₓΨ + iΓᶜ ∂cΨ − φ·M·Ψ + κ(Ψ₀ − Ψ
 | `iΓˣ ∂ₓΨ` | Internal spatial gradient | `Γₓ @ (Ψ − mean(history[-10:]))` — internal topology |
 | `iΓᶜ ∂cΨ` | Informational gradient | `Γc @ info_deltas` — Reactor output |
 | `−φ·M·Ψ` | Dissipation (adaptive mass) | MassMatrix EMA, rate adapted to Φ_IIT |
-| `κ(Ψ₀ − Ψ)` | Identity anchoring | κ = φ² = 2.618, Ψ₀ two-layer |
+| `κ(Ψ₀ − Ψ)` | Identity anchoring | κ = φ² = 2.618 (asymmetric when γ > 0), Ψ₀ two-layer |
 
 ### Ψ — Cognitive State
 
@@ -115,9 +115,9 @@ TESTENGINEER:   Ψ₀ = (0.150, 0.200, 0.500, 0.150)  — Intégration dominant
 ### Constants (all φ-derived)
 
 ```
-φ   = 1.618    golden ratio
+φ   = 1.618    golden ratio (emergent in v7.0)
 τ   = φ        softmax temperature (simplex projection)
-κ   = φ²       identity anchoring (2.618)
+κ   = φ²       identity anchoring (2.618), asymmetric via γ parameter
 dt  = 1/φ      time step (0.618)
 λ   = 1/φ²     dissipation ratio (0.382)
 ```

@@ -507,21 +507,26 @@ Step 5 is the **self-referential feedback loop**: the coupling energy produced b
 
 > **Note**: During bootstrap (< 610 steps), all derived parameters use the legacy fallback φ = 1.618034…. After convergence, φₑ is continuously refined by the dynamics. In practice, φₑ converges to within 0.01% of the true golden ratio by step 10,000, and precision grows indefinitely thereafter via mpmath arbitrary precision.
 
-### Asymmetric κ — held in reserve
+### Asymmetric κ — implemented (v7.0)
 
-The current κ is symmetric: every component is pulled toward Ψ₀ with the same force. An asymmetric variant has been validated numerically:
+The anchoring term supports per-component κ via the γ parameter:
 
 ```text
 κᵢ = φ² · (1 + γ · max(0, Ψᵢ − Ψ₀ᵢ))
 ```
 
-The idea: apply a stronger pull-back to overexpressed components (above their target) than to underexpressed ones (below target). This extends the identity stability frontier from α ≈ 0.29 to α ≈ 0.32 in identity simulations.
+When γ = 0 (default): reduces to symmetric κ = φ² — fully backwards compatible.
 
-This asymmetric κ is **held in reserve** for two reasons:
-1. It modifies the evolution equation itself — not just a parameter, but the structure of the restoring term.
-2. It has not yet been validated with the full circuit (Thinker + Evaluator + J + cognitive interoception).
+When γ > 0:
+- **Overexpressed** components (Ψᵢ > Ψ₀ᵢ) face stronger pull-back
+- **Underexpressed** components (Ψᵢ ≤ Ψ₀ᵢ) keep standard κ — free to circulate
+- The asymmetry creates room in the simplex budget for drained components (e.g. Reflection) to recover
 
-The approach chosen for v5.3 was to correct Ψ₀ (the anchor point) rather than κ (the restoring force) — more conservative, more reversible.
+This addresses the Γᶜ structural drain directly: Reflection, chronically below its Ψ₀ target (ratio 0.794), is no longer constrained by the same force that restrains overexpressed components. The identity anchor stops being a cage for the underexpressed — it becomes a selective pressure on the overexpressed.
+
+The parameter γ is controlled by `KAPPA_GAMMA_DEFAULT` in constants.py (default: 0.0 = disabled). To activate, pass `kappa_gamma > 0` to `evolve()` or `evolution_step()`.
+
+**Spectral safety**: since κ_vec ≥ κ for all components (γ ≥ 0), the diagonal dissipation only increases. The system becomes MORE stable, not less.
 
 ### Validated interpretation of τ
 

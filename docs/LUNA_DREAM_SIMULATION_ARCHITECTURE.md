@@ -339,7 +339,7 @@ Every dream parameter derives from φ:
 | 1/φ² | 0.382 | CEM elite fraction, prior injection dampening |
 | 1/φ³ | 0.236 | Cumulative Ψ₀ cap, prior population dampening |
 | 1/φ³² | ~0.056 | Skill learning threshold (v5.3) |
-| φ² | 2.618 | Identity anchoring κ (unchanged during dream) |
+| φ² | 2.618 | Identity anchoring κ base (unchanged during dream, asymmetric via γ) |
 
 ---
 

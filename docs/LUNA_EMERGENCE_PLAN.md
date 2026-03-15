@@ -52,7 +52,7 @@ Les poids de l'Evaluator sont la **physique du monde**, fixés par Varden.
 ### 1.4 Ancrage identitaire Ψ₀ protégé
 - Le Dream peut ajuster Ψ₀ à partir de l'expérience vécue (CycleRecords)
 - Les LearnableParams **ne peuvent pas** influencer comment le Dream modifie Ψ₀
-- κ = Φ² = 2.618 reste fixe — c'est la gravité identitaire du système
+- κ = Φ² = 2.618 — la gravité identitaire du système (v7.0 : asymétrique via γ, plus fort sur les composantes surexprimées)
 - Ψ₀ bouge lentement par consolidation, jamais par optimisation directe
 
 ### 1.5 Le simplex est sacré
@@ -90,7 +90,7 @@ iΓᵗ ∂ₜ + iΓˣ ∂ₓ + iΓᶜ ∂ᶜ − Φ·M·Ψ + κ·(Ψ₀ − Ψ) 
 | λ | 1/Φ² = 0.382 | Poids dissipation |
 | α | 1/Φ² = 0.382 | Auto-amortissement |
 | β | 1/Φ³ = 0.236 | Couplage croisé |
-| κ | Φ² = 2.618 | Ancrage identité |
+| κ | Φ² = 2.618 | Ancrage identité (asymétrique via γ en v7.0) |
 | α_m | 0.1 | EMA masse (empirique — seul param non φ-dérivé) |
 
 ### Agents sur Δ³

@@ -10,6 +10,7 @@ import numpy as np
 
 from luna_common.constants import (
     DIM, PHI, INV_PHI, INV_PHI2, DT_DEFAULT, TAU_DEFAULT, KAPPA_DEFAULT,
+    KAPPA_GAMMA_DEFAULT,
 )
 from luna_common.consciousness.simplex import project_simplex
 
@@ -129,6 +130,7 @@ def evolution_step(
     dt: float = DT_DEFAULT,
     tau: float = TAU_DEFAULT,
     kappa: float = KAPPA_DEFAULT,
+    kappa_gamma: float = KAPPA_GAMMA_DEFAULT,
     phi_iit: float | None = None,
     emergent_phi: float | None = None,
 ) -> np.ndarray:
@@ -147,6 +149,10 @@ def evolution_step(
         dt: Time step (default: 1/PHI).
         tau: Softmax temperature (default: PHI).
         kappa: Anchoring strength (default: PHI^2).
+        kappa_gamma: Asymmetric anchoring strength (default: 0.0 = symmetric).
+            When > 0, overexpressed components (Psi_i > Psi0_i) get a stronger
+            pull-back: kappa_i = kappa * (1 + gamma * max(0, Psi_i - Psi0_i)).
+            Underexpressed components keep kappa_i = kappa (unchanged).
         phi_iit: Current integration level for adaptive mass update.
             When low, the mass matrix tracks faster — creating stronger
             dissipation on dominant components and restoring balance.
@@ -165,12 +171,19 @@ def evolution_step(
     # Use emergent phi when available; fall back to the hardcoded constant.
     phi_constant = emergent_phi if emergent_phi is not None else PHI
 
+    # Asymmetric kappa: stronger pull-back on overexpressed components.
+    # When kappa_gamma == 0, kappa_vec remains a scalar (bit-identical to before).
+    if kappa_gamma > 0.0:
+        kappa_vec = kappa * (1.0 + kappa_gamma * np.maximum(0.0, psi - psi0))
+    else:
+        kappa_vec = kappa
+
     delta = (
         Gt @ dt_grad
         + Gx @ dx_grad
         + Gc @ dc_grad
         - phi_constant * mass.matrix() @ psi
-        + kappa * (psi0 - psi)
+        + kappa_vec * (psi0 - psi)
     )
 
     psi_raw = psi + dt * delta

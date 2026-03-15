@@ -639,6 +639,91 @@ class TestMassMatrix:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  VI-b. ASYMMETRIC KAPPA
+# ═══════════════════════════════════════════════════════════════
+
+class TestAsymmetricKappa:
+    """Validate asymmetric kappa (v7.0): γ > 0 pulls harder on overexpressed."""
+
+    def test_gamma_zero_matches_symmetric(self):
+        """kappa_gamma=0 produces bit-identical results to no gamma parameter."""
+        psi0 = get_psi0("LUNA")
+        psi = np.array([0.1, 0.1, 0.4, 0.4])
+        mass_a = MassMatrix(psi0)
+        mass_b = MassMatrix(psi0)
+        gammas = (gamma_temporal(), gamma_spatial(), gamma_info())
+
+        result_a = evolution_step(psi, psi0, mass_a, gammas, kappa_gamma=0.0)
+        result_b = evolution_step(psi, psi0, mass_b, gammas)
+
+        np.testing.assert_array_equal(result_a, result_b)
+
+    def test_asymmetric_stronger_pullback_on_overexpressed(self):
+        """With γ > 0, overexpressed components converge faster toward Ψ₀."""
+        psi0 = get_psi0("LUNA")
+        psi = np.array([0.1, 0.1, 0.4, 0.4])  # ψ3, ψ4 overexpressed
+        gammas = (gamma_temporal(), gamma_spatial(), gamma_info())
+
+        mass_sym = MassMatrix(psi0)
+        psi_sym = psi.copy()
+        for _ in range(100):
+            psi_sym = evolution_step(psi_sym, psi0, mass_sym, gammas, kappa_gamma=0.0)
+
+        mass_asym = MassMatrix(psi0)
+        psi_asym = psi.copy()
+        for _ in range(100):
+            psi_asym = evolution_step(psi_asym, psi0, mass_asym, gammas, kappa_gamma=1.0)
+
+        d_sym = np.linalg.norm(psi_sym - psi0)
+        d_asym = np.linalg.norm(psi_asym - psi0)
+        assert d_asym < d_sym, (
+            f"Asymmetric kappa should converge closer to psi0: "
+            f"d_sym={d_sym:.6f}, d_asym={d_asym:.6f}"
+        )
+
+    def test_underexpressed_not_penalized(self):
+        """Underexpressed components (Ψᵢ < Ψ₀ᵢ) get kappa_i = kappa (unchanged)."""
+        psi0 = get_psi0("LUNA")
+        # Reflection well below its target 0.322
+        psi = np.array([0.35, 0.15, 0.30, 0.20])
+        gammas = (gamma_temporal(), gamma_spatial(), gamma_info())
+
+        mass_sym = MassMatrix(psi0)
+        psi_sym = evolution_step(psi, psi0, mass_sym, gammas, kappa_gamma=0.0)
+
+        mass_asym = MassMatrix(psi0)
+        psi_asym = evolution_step(psi, psi0, mass_asym, gammas, kappa_gamma=1.0)
+
+        # Reflection (index 1) should recover MORE with asymmetric kappa
+        # because overexpressed components are pulled harder, freeing budget
+        assert psi_asym[1] >= psi_sym[1] - 1e-10, (
+            f"Underexpressed Reflection should not be penalized: "
+            f"sym={psi_sym[1]:.6f}, asym={psi_asym[1]:.6f}"
+        )
+
+    def test_simplex_invariant_with_asymmetric_kappa(self):
+        """Simplex invariant holds with asymmetric kappa over 200 steps."""
+        psi0 = get_psi0("LUNA")
+        psi = psi0.copy()
+        mass = MassMatrix(psi0)
+        gammas = (gamma_temporal(), gamma_spatial(), gamma_info())
+        history: list[np.ndarray] = []
+
+        np.random.seed(42)
+        for _ in range(200):
+            info = (0.02 * np.random.randn(4)).tolist()
+            psi = evolution_step(
+                psi, psi0, mass, gammas,
+                history=history,
+                info_deltas=info,
+                kappa_gamma=1.0,
+            )
+            history.append(psi.copy())
+            assert psi.min() > 0, f"Positivity violated: {psi}"
+            assert abs(psi.sum() - 1.0) < 1e-6, f"Sum != 1: {psi.sum()}"
+
+
+# ═══════════════════════════════════════════════════════════════
 #  VII. PYDANTIC SCHEMAS
 # ═══════════════════════════════════════════════════════════════
 

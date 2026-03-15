@@ -20,6 +20,7 @@ from luna_common.constants import (
     HYSTERESIS_BAND,
     INV_PHI3,
     KAPPA_DEFAULT,
+    KAPPA_GAMMA_DEFAULT,
     PHASE_THRESHOLDS,
     TAU_DEFAULT,
 )
@@ -117,6 +118,7 @@ class ConsciousnessState:
         dt: float = DT_DEFAULT,
         tau: float = TAU_DEFAULT,
         kappa: float = KAPPA_DEFAULT,
+        kappa_gamma: float = KAPPA_GAMMA_DEFAULT,
     ) -> np.ndarray:
         """Run one evolution step and update internal state.
 
@@ -133,6 +135,7 @@ class ConsciousnessState:
             dt: Time step.
             tau: Softmax temperature.
             kappa: Identity anchoring strength.
+            kappa_gamma: Asymmetric anchoring strength (0.0 = symmetric).
 
         Returns:
             The new Psi vector (also stored as self.psi).
@@ -153,6 +156,7 @@ class ConsciousnessState:
             dt=dt,
             tau=tau,
             kappa=kappa,
+            kappa_gamma=kappa_gamma,
             phi_iit=phi,
             emergent_phi=phi_e,
         )
