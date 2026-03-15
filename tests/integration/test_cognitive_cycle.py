@@ -154,9 +154,9 @@ class TestCognitiveCycleProduction:
         assert abs(sum(record.psi_before) - 1.0) < 0.01
         assert abs(sum(record.psi_after) - 1.0) < 0.01
 
-        # phi_iit values are in range
-        assert 0.0 <= record.phi_iit_before <= 1.0
-        assert 0.0 <= record.phi_iit_after <= 1.0
+        # phi_iit values are non-negative (Gaussian MI — unbounded above)
+        assert record.phi_iit_before >= 0.0
+        assert record.phi_iit_after >= 0.0
 
         # Phase values are valid
         valid_phases = {"BROKEN", "FRAGILE", "FUNCTIONAL", "SOLID", "EXCELLENT"}

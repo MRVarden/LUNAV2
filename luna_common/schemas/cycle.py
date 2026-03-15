@@ -313,8 +313,8 @@ class CycleRecord(BaseModel):
     psi_after: tuple[float, float, float, float]
     phi_before: float = Field(ge=0.0, le=2.0)
     phi_after: float = Field(ge=0.0, le=2.0)
-    phi_iit_before: float = Field(ge=0.0, le=5.0)  # Phase 3: Gaussian MI unbounded above 1.0
-    phi_iit_after: float = Field(ge=0.0, le=5.0)   # Phase 3: Gaussian MI unbounded above 1.0
+    phi_iit_before: float = Field(ge=0.0)  # Gaussian MI — unbounded above
+    phi_iit_after: float = Field(ge=0.0)   # Gaussian MI — unbounded above
     emergent_phi: float | None = Field(
         default=None, ge=0.0, le=5.0,
         description="Emergent phi from coupling dynamics (self-discovered golden ratio)",
