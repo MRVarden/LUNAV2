@@ -23,6 +23,35 @@ import sys
 from luna.core.config import LunaConfig
 
 
+# Loggers kept at INFO (visible in console):
+#   luna.consciousness.initiative    — Luna's autonomous initiative triggers
+#   luna.consciousness.endogenous    — Endogenous impulses (curiosity, affect)
+#   luna.chat.session                — Endogenous impulse display + LLM responses
+#   luna.consciousness.decider       — Intent decisions
+# Everything else → WARNING (file log still captures all at INFO).
+_QUIET_LOGGERS: tuple[str, ...] = (
+    "luna.orchestrator.cognitive_loop",
+    "luna.consciousness.observation_factory",
+    "luna.consciousness.thinker",           # obs counts per cycle
+    "luna.llm_bridge",
+    "luna.memory",
+    "luna.dream",
+    "luna.api",
+    "luna.heartbeat",
+    "luna.safety",
+    "luna.identity",
+    "httpx",
+    "httpcore",
+    "uvicorn",
+)
+
+
+def _quiet_noisy_loggers() -> None:
+    """Set noisy loggers to WARNING on console, keeping file logs untouched."""
+    for name in _QUIET_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m luna", description="Luna CLI")
     sub = parser.add_subparsers(dest="command")
@@ -57,10 +86,13 @@ def main() -> None:
         sys.exit(1)
 
     if args.command == "start":
+        log_level = getattr(logging, args.log_level.upper(), logging.INFO)
         logging.basicConfig(
-            level=getattr(logging, args.log_level.upper(), logging.INFO),
+            level=log_level,
             format="%(asctime)s %(name)s %(levelname)s %(message)s",
         )
+        if log_level > logging.DEBUG:
+            _quiet_noisy_loggers()
         config = LunaConfig.load(args.config)
 
         from luna.orchestrator.cognitive_loop import CognitiveLoop
@@ -114,10 +146,13 @@ def main() -> None:
                 pass
 
     elif args.command == "chat":
+        log_level = getattr(logging, args.log_level.upper(), logging.INFO)
         logging.basicConfig(
-            level=getattr(logging, args.log_level.upper(), logging.INFO),
+            level=log_level,
             format="%(asctime)s %(name)s %(levelname)s %(message)s",
         )
+        if log_level > logging.DEBUG:
+            _quiet_noisy_loggers()
 
         config = LunaConfig.load(args.config)
 
